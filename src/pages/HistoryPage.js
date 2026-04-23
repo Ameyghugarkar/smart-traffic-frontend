@@ -1,12 +1,14 @@
-// pages/HistoryPage.js — Full-screen traffic history analytics
+// pages/HistoryPage.js — Full-screen traffic history analytics v2
+
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { API_TRAFFIC } from "../config";
 import { useTheme } from "../ThemeContext";
 import {
   ResponsiveContainer, AreaChart, Area, LineChart, Line,
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
+  XAxis, YAxis, CartesianGrid, Tooltip, Legend,
 } from "recharts";
+
 
 const RANGES = [
   { key:"24h", label:"Last 24 Hours" },
@@ -26,7 +28,12 @@ const HistoryPage = () => {
       .then(res => {
         const data = res.data?.data || res.data || [];
         setSnapshots(data.map(s => ({
-          time:       new Date(s.capturedAt).toLocaleString("en-IN", { hour:"2-digit", minute:"2-digit", day:"numeric", month:"short" }),
+          // Short time label — just hour:minute, date only when 7d/30d
+          time:       new Date(s.capturedAt).toLocaleString("en-IN", {
+                        hour:   "2-digit",
+                        minute: "2-digit",
+                        ...(range !== "24h" ? { day:"numeric", month:"short" } : {}),
+                      }),
           congestion: Math.round((s.avgCongestion || 0) * 100),
           vehicles:   s.totalVehicles || 0,
           heavyZones: s.heavyZones   || 0,
@@ -148,21 +155,56 @@ const HistoryPage = () => {
             </ResponsiveContainer>
           </div>
 
-          {/* Heavy vs Clear Bar Chart */}
+          {/* Heavy vs Clear — Stacked Area (works at any data density) */}
           <div style={card}>
-            <h2 style={{ margin:"0 0 20px", fontSize:16, fontWeight:700, color:isDark?"#f1f5f9":"#1a202c" }}>
+            <h2 style={{ margin:"0 0 6px", fontSize:16, fontWeight:700, color:isDark?"#f1f5f9":"#1a202c" }}>
               Heavy vs Clear Zones Over Time
             </h2>
+            <p style={{ margin:"0 0 16px", fontSize:12, color:isDark?"#6b7280":"#9ca3af" }}>
+              Stacked area — combined always equals 12 zones total
+            </p>
             <ResponsiveContainer width="100%" height={220}>
-              <BarChart data={snapshots} margin={{ top:5, right:20, left:0, bottom:40 }}>
+              <AreaChart data={snapshots} margin={{ top:5, right:20, left:0, bottom:40 }}
+                stackOffset="none">
+                <defs>
+                  <linearGradient id="heavyGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%"  stopColor="#e53e3e" stopOpacity={0.7}/>
+                    <stop offset="95%" stopColor="#e53e3e" stopOpacity={0.2}/>
+                  </linearGradient>
+                  <linearGradient id="clearGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%"  stopColor="#38a169" stopOpacity={0.6}/>
+                    <stop offset="95%" stopColor="#38a169" stopOpacity={0.1}/>
+                  </linearGradient>
+                </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke={isDark?"#2d3748":"#f0f0f0"}/>
-                <XAxis dataKey="time" tick={{ fontSize:9, fill:isDark?"#9ca3af":"#718096" }} angle={-30} textAnchor="end" interval={Math.max(0, Math.floor(snapshots.length/10)-1)}/>
-                <YAxis tick={{ fontSize:10, fill:isDark?"#9ca3af":"#718096" }}/>
-                <Tooltip {...tooltipProps} cursor={{ fill: isDark?"rgba(255,255,255,0.06)":"rgba(0,0,0,0.04)" }}/>
+                <XAxis
+                  dataKey="time"
+                  tick={{ fontSize:9, fill:isDark?"#9ca3af":"#718096" }}
+                  angle={-35} textAnchor="end"
+                  interval={Math.max(0, Math.floor(snapshots.length / 10) - 1)}
+                />
+                <YAxis
+                  tick={{ fontSize:10, fill:isDark?"#9ca3af":"#718096" }}
+                  domain={[0, 12]} ticks={[0,3,6,9,12]}
+                  tickFormatter={v => `${v} zones`}
+                />
+                <Tooltip
+                  {...tooltipProps}
+                  formatter={(v, name) => [`${v} zones`, name]}
+                />
                 <Legend wrapperStyle={{ fontSize:12, paddingTop:12 }}/>
-                <Bar dataKey="heavyZones" name="Heavy Zones" fill="#e53e3e" radius={[3,3,0,0]} opacity={0.85}/>
-                <Bar dataKey="clearZones" name="Clear Zones" fill="#38a169" radius={[3,3,0,0]} opacity={0.85}/>
-              </BarChart>
+                {/* Clear first (bottom), Heavy on top */}
+                <Area
+                  type="monotone" dataKey="clearZones" name="Clear Zones"
+                  stackId="zones"
+                  stroke="#38a169" fill="url(#clearGrad)" strokeWidth={1.5}
+                />
+                <Area
+                  type="monotone" dataKey="heavyZones" name="Heavy Zones"
+                  stackId="zones"
+                  stroke="#e53e3e" fill="url(#heavyGrad)" strokeWidth={1.5}
+                />
+              </AreaChart>
             </ResponsiveContainer>
           </div>
         </>

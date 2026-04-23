@@ -8,7 +8,8 @@ import ZoneSidebar   from "../ZoneSidebar";
 import { useTheme }  from "../ThemeContext";
 import { useAuth }   from "../AuthContext";
 
-const REFRESH_INTERVAL = 5000;
+const REFRESH_INTERVAL = 60000; // 60s — backend cron runs every 15 min, no need to poll faster
+
 
 const DashboardPage = ({ onScoreUpdate, onLoginClick }) => {
   const { isDark, theme } = useTheme();

@@ -258,14 +258,13 @@ const HourlyForecastTab = ({ zones }) => {
 // ─── History Tab ──────────────────────────────────────────────────────────────
 const HistoryTab = () => {
   const { isDark: dark } = useTheme();
-  const [range,     setRange]     = useState("24h");
   const [snapshots, setSnapshots] = useState([]);
   const [loading,   setLoading]   = useState(true);
 
-  const fetchHistory = useCallback(async (r) => {
+  const fetchHistory = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await axios.get(`${API_BASE}/history?range=${r}`, { timeout: 8000 });
+      const res = await axios.get(`${API_BASE}/history?range=24h`, { timeout: 8000 });
       if (res.data?.snapshots) {
         const data = res.data.snapshots.map(s => ({
           time:       new Date(s.capturedAt).toLocaleString([], { month:"short", day:"numeric", hour:"2-digit", minute:"2-digit", hour12:true }),
@@ -280,25 +279,12 @@ const HistoryTab = () => {
     finally { setLoading(false); }
   }, []);
 
-  useEffect(() => { fetchHistory(range); }, [range, fetchHistory]);
-
-  const rangeBtnStyle = (r) => ({
-    padding: "4px 14px", borderRadius: 99, fontSize: 11, fontWeight: 600,
-    cursor: "pointer", border: "1px solid", fontFamily: "inherit",
-    borderColor: range === r ? "#6366f1" : (dark ? "#374151" : "#e2e8f0"),
-    background:  range === r ? "#6366f1" : "transparent",
-    color:       range === r ? "#fff"    : (dark ? "#9ca3af" : "#718096"),
-  });
+  useEffect(() => { fetchHistory(); }, [fetchHistory]);
 
   return (
     <div>
       <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:16 }}>
-        <p style={{ ...styles.chartTitle, margin:0 }}>Historical traffic — 15-min snapshots stored automatically</p>
-        <div style={{ display:"flex", gap:6 }}>
-          {["24h","7d","30d"].map(r => (
-            <button key={r} onClick={() => setRange(r)} style={rangeBtnStyle(r)}>{r}</button>
-          ))}
-        </div>
+        <p style={{ ...styles.chartTitle, margin:0 }}>Historical traffic (Last 24 Hours) — 15-min snapshots stored automatically</p>
       </div>
 
       {loading ? (
@@ -369,22 +355,34 @@ const HistoryTab = () => {
           </ResponsiveContainer>
 
           {/* Heavy vs Clear zones */}
-          <p style={{ ...styles.chartTitle, color:dark?"#9ca3af":"#718096", marginTop:20 }}>Heavy vs Clear zones over time</p>
+          <p style={{ ...styles.chartTitle, color:dark?"#9ca3af":"#718096", marginTop:20 }}>
+            Heavy vs Clear zones over time
+          </p>
           <ResponsiveContainer width="100%" height={120}>
-            <BarChart data={snapshots} margin={{ top:5, right:10, left:0, bottom:30 }}>
+            <AreaChart data={snapshots} margin={{ top:5, right:10, left:0, bottom:30 }} stackOffset="none">
+              <defs>
+                <linearGradient id="heavyGradTC" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%"  stopColor="#e53e3e" stopOpacity={0.7}/>
+                  <stop offset="95%" stopColor="#e53e3e" stopOpacity={0.2}/>
+                </linearGradient>
+                <linearGradient id="clearGradTC" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%"  stopColor="#38a169" stopOpacity={0.6}/>
+                  <stop offset="95%" stopColor="#38a169" stopOpacity={0.1}/>
+                </linearGradient>
+              </defs>
               <CartesianGrid strokeDasharray="3 3" stroke={dark?"#2d3748":"#f0f0f0"}/>
               <XAxis dataKey="time" tick={{ fontSize:9, fill:dark?"#9ca3af":"#718096" }} angle={-30} textAnchor="end" interval={Math.max(0,Math.floor(snapshots.length/8)-1)}/>
-              <YAxis tick={{ fontSize:10, fill:dark?"#9ca3af":"#718096" }}/>
+              <YAxis domain={[0, 12]} tick={{ fontSize:10, fill:dark?"#9ca3af":"#718096" }}/>
               <Tooltip
                 contentStyle={{ background:dark?"#1e2535":"#fff", border:`1px solid ${dark?"#374151":"#e2e8f0"}`, borderRadius:8 }}
                 labelStyle={{ color:dark?"#f1f5f9":"#1a202c", fontWeight:600, fontSize:11 }}
                 itemStyle={{ color:dark?"#a0aec0":"#718096", fontSize:11 }}
                 wrapperStyle={{ outline:"none" }}
-                cursor={{ fill: dark?"rgba(255,255,255,0.06)":"rgba(0,0,0,0.04)" }}
               />
-              <Bar dataKey="heavyZones" name="Heavy" fill="#e53e3e" radius={[2,2,0,0]} opacity={0.85}/>
-              <Bar dataKey="clearZones" name="Clear"  fill="#38a169" radius={[2,2,0,0]} opacity={0.85}/>
-            </BarChart>
+              {/* Clear first (bottom), Heavy on top */}
+              <Area type="monotone" dataKey="clearZones" name="Clear" stackId="zones" stroke="#38a169" fill="url(#clearGradTC)" strokeWidth={1.5}/>
+              <Area type="monotone" dataKey="heavyZones" name="Heavy" stackId="zones" stroke="#e53e3e" fill="url(#heavyGradTC)" strokeWidth={1.5}/>
+            </AreaChart>
           </ResponsiveContainer>
         </>
       )}
@@ -616,14 +614,46 @@ const TrafficCharts = ({ trafficData: externalData = [], isRefreshing = false, i
   const loading = externalData.length === 0;
 
   // Build history from shared data changes
+  const seedFetched = useRef(false);
+
   useEffect(() => {
+    // 1. Initial Seed Fetch (only runs once)
+    if (!seedFetched.current) {
+      seedFetched.current = true;
+      axios.get(`${API_BASE}/history?range=24h`, { timeout: 8000 })
+        .then(res => {
+          if (res.data?.snapshots) {
+            // Take the last 60 snapshots (15 hours of history)
+            const seed = res.data.snapshots.slice(-60).map(s => ({
+              time: new Date(s.capturedAt).toLocaleTimeString([], { hour:"2-digit", minute:"2-digit" }),
+              avgCong: Math.round((s.avgCongestion || 0) * 100),
+              vehicles: s.totalVehicles || 0
+            }));
+            
+            // Merge seed with any live points that might have been collected already
+            setHistoryData(prev => {
+              const livePoints = prev.filter(p => p.time && p.time.includes(":")); // live points have seconds
+              return [...seed, ...livePoints].slice(-120);
+            });
+          }
+        })
+        .catch(() => {});
+    }
+
+    // 2. Append Live Data
     if (isRefreshing || externalData.length === 0) return;
+    
     const now = new Date().toLocaleTimeString([], { hour:"2-digit", minute:"2-digit", second:"2-digit" });
     setLastUpdated(now);
-    const avg = Math.round(externalData.reduce((s,z)=>s+(z.congestion||0),0)/externalData.length*100);
-    const totalVehicles = externalData.reduce((s,z)=>s+(z.vehicles||0),0);
-    setHistoryData(prev => [...prev, { time:now, avgCong:avg, vehicles:totalVehicles }].slice(-12));
-  }, [externalData, isRefreshing]);
+    
+    const avg = Math.round(externalData.reduce((s,z) => s + (z.congestion || 0), 0) / externalData.length * 100);
+    const totalVehicles = externalData.reduce((s,z) => s + (z.vehicles || 0), 0);
+
+    setHistoryData(prev => {
+      if (prev.length > 0 && prev[prev.length - 1].time === now) return prev;
+      return [...prev, { time: now, avgCong: avg, vehicles: totalVehicles }].slice(-120);
+    });
+  }, [externalData, isRefreshing]); // eslint-disable-line
 
   if (loading) return (
     <div style={styles.loadingBox}><p style={styles.loadingText}>Loading chart data…</p></div>
@@ -750,12 +780,7 @@ const TrafficCharts = ({ trafficData: externalData = [], isRefreshing = false, i
         {activeTab === "history" && (
           <div style={styles.chartWrap}>
             <p style={styles.chartTitle}>
-              Average congestion over time — updates every 5 seconds
-              {historyData.length < 3 && (
-                <span style={{ color: "#a0aec0", marginLeft: 8, fontSize: 12 }}>
-                  (collecting… {historyData.length}/12 points)
-                </span>
-              )}
+              Live Trend: Average congestion over time (shows up to 120 points)
             </p>
             <ResponsiveContainer width="100%" height={200}>
               <AreaChart data={historyData} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>

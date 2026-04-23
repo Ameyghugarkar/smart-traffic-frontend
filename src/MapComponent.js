@@ -797,9 +797,22 @@ const MapComponent = ({ layoutTrigger = "", user = null, onLoginRequired = () =>
                       <span style={{ ...styles.popupValue, color:theme.text }}>{item.congestion!==undefined?`${(item.congestion*100).toFixed(0)}%`:"—"}</span>
                     </div>
                     <div style={{ ...styles.popupRow,borderTop:`1px solid ${isDark?"#2d3748":"#e2e8f0"}`,paddingTop:8,marginTop:4 }}>
-                      <span style={{ ...styles.popupLabel, color:theme.textMuted }}>Predicted</span>
-                      <span style={{ ...styles.popupValue,fontWeight:600,color:predLoading?"#a0aec0":predValue==="N/A"?"#fc8181":"#38a169" }}>
-                        {predLoading?"Fetching…":predValue==="N/A"?"Unavailable":`${(parseFloat(predValue)*100).toFixed(0)}%`}
+                      <span style={{ ...styles.popupLabel, color:theme.textMuted }}>
+                        Next 15 min
+                      </span>
+                      <span style={{ ...styles.popupValue,fontWeight:600,color:predLoading?"#a0aec0":predValue==="N/A"?"#fc8181":getColor(parseFloat(predValue)||0) }}>
+                        {predLoading ? "Fetching…"
+                          : predValue==="N/A" ? "Unavailable"
+                          : (() => {
+                              const pct  = Math.round(parseFloat(predValue)*100);
+                              const cur  = Math.round((item.congestion||0)*100);
+                              const diff = pct - cur;
+                              const arrow = diff > 3 ? " ▲" : diff < -3 ? " ▼" : " →";
+                              const nextT = new Date(Date.now()+15*60000)
+                                .toLocaleTimeString("en-IN",{hour:"2-digit",minute:"2-digit",hour12:true});
+                              return `${pct}%${arrow}  (at ${nextT})`;
+                            })()
+                        }
                       </span>
                     </div>
                     {pred?.confidence&&(
@@ -809,7 +822,7 @@ const MapComponent = ({ layoutTrigger = "", user = null, onLoginRequired = () =>
                       </div>
                     )}
                     <div style={{ fontSize:10,color:theme.textMuted,marginTop:6 }}>
-                      {item.timestamp?new Date(item.timestamp).toLocaleTimeString():""}
+                      {item.timestamp ? `Data as of ${new Date(item.timestamp).toLocaleTimeString("en-IN",{hour:"2-digit",minute:"2-digit",hour12:true})}` : ""}
                     </div>
                   </div>
                 </Popup>
