@@ -106,7 +106,7 @@ const IncidentsPage = ({ onLoginClick }) => {
 
       {/* Report Form */}
       {showForm && (
-        <div style={{ ...card, border:"1px solid #e53e3e44", background:isDark?"#1a1f2e":"#fff9f9" }}>
+        <div style={{ ...card, border:"2px solid #e53e3e", boxShadow: isDark ? "0 0 15px rgba(229,62,62,0.15)" : "0 0 15px rgba(229,62,62,0.1)", background:isDark?"#201517":"#fff9f9" }}>
           <h2 style={{ margin:"0 0 20px", fontSize:16, fontWeight:700, color:isDark?"#f1f5f9":"#1a202c" }}>📝 Report New Incident</h2>
           <form onSubmit={handleSubmit}>
             <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:16, marginBottom:16 }}>

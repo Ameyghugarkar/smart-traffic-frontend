@@ -8,9 +8,6 @@ import ZoneSidebar   from "../ZoneSidebar";
 import { useTheme }  from "../ThemeContext";
 import { useAuth }   from "../AuthContext";
 
-const REFRESH_INTERVAL = 60000; // 60s — backend cron runs every 15 min, no need to poll faster
-
-
 const DashboardPage = ({ onScoreUpdate, onLoginClick }) => {
   const { isDark, theme } = useTheme();
   const { user } = useAuth();
@@ -19,7 +16,7 @@ const DashboardPage = ({ onScoreUpdate, onLoginClick }) => {
   const [showSidebar,  setShowSidebar]  = useState(true);
   const [trafficData,  setTrafficData]  = useState([]);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const intervalRef = useRef(null);
+  const pollRef = useRef(null);
 
   const dedup = (raw) => {
     const map = {};
@@ -30,6 +27,7 @@ const DashboardPage = ({ onScoreUpdate, onLoginClick }) => {
     return Object.values(map);
   };
 
+  // Reads latest data from MongoDB — no TomTom call, free
   const fetchTraffic = useCallback(async () => {
     try {
       const res = await axios.get(API_TRAFFIC, { timeout: 5000 });
@@ -44,23 +42,22 @@ const DashboardPage = ({ onScoreUpdate, onLoginClick }) => {
     } catch { /* silent */ }
   }, [onScoreUpdate]);
 
+  // Manual Refresh — calls TomTom for fresh live data (uses API quota)
   const generateData = useCallback(async () => {
-    if (intervalRef.current) { clearInterval(intervalRef.current); intervalRef.current = null; }
     setIsRefreshing(true);
     setTrafficData([]);
     try {
       await axios.get(`${API_TRAFFIC}/generate`, { timeout: 60000 });
       await fetchTraffic();
     } catch { /* silent */ }
-    finally {
-      setIsRefreshing(false);
-      intervalRef.current = setInterval(fetchTraffic, REFRESH_INTERVAL);
-    }
+    finally { setIsRefreshing(false); }
   }, [fetchTraffic]);
 
+  // On mount: read MongoDB immediately, then poll every 15 min (matches cron cadence, zero TomTom cost)
   useEffect(() => {
-    generateData();
-    return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
+    fetchTraffic();
+    pollRef.current = setInterval(fetchTraffic, 15 * 60 * 1000);
+    return () => { if (pollRef.current) clearInterval(pollRef.current); };
   }, []); // eslint-disable-line
 
   return (

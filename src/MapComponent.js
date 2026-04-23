@@ -324,146 +324,6 @@ const RouteSuggester = ({ zones, onRoute, onClose }) => {
   );
 };
 
-// ─── Incident Report Panel ────────────────────────────────────────────────────
-const IncidentForm = ({ zones, incidents, onAdd, onClear, onClose, user, onLoginRequired }) => {
-  const { theme, isDark } = useTheme();
-  const [form,      setForm]      = useState({ zone:"", type:"", description:"", severity:"medium" });
-  const [submitted, setSubmitted] = useState(false);
-
-  const TYPES = ["Accident","Road Closure","Flooding","Construction","Breakdown","Protest","Other"];
-  const severityColor = (s) => s==="high"?"#e53e3e":s==="medium"?"#ed8936":"#38a169";
-
-  const handleSubmit = () => {
-    if (!form.zone || !form.type) return;
-    const zone = zones.find(z=>z.location===form.zone);
-    onAdd({
-      ...form,
-      id:        Date.now(),
-      timestamp: new Date().toLocaleTimeString(),
-      date:      new Date().toLocaleDateString(),
-      lat:       zone?.lat,
-      lng:       zone?.lng,
-    });
-    setSubmitted(true);
-    setForm({ zone:"", type:"", description:"", severity:"medium" });
-    setTimeout(()=>setSubmitted(false), 2000);
-  };
-
-  return (
-    <div style={{ ...panelStyles.panel, background: theme.surface, color: theme.text, border:`1px solid ${theme.border}`, boxShadow: isDark?"0 8px 32px rgba(0,0,0,0.5)":"0 8px 32px rgba(0,0,0,0.15)" }}>
-      <div style={panelStyles.header}>
-        <span style={{ fontWeight:700, fontSize:13 }}>⚠️ Report Incident</span>
-        <button onClick={onClose} style={panelStyles.closeBtn}>✕</button>
-      </div>
-      <p style={{ ...panelStyles.sub, color:theme.textMuted }}>Report accidents, closures or roadblocks</p>
-
-      <label style={{ ...panelStyles.label, color:theme.textSub }}>Zone</label>
-      <select value={form.zone} onChange={e=>setForm(f=>({...f,zone:e.target.value}))} style={{ ...panelStyles.select, border:`1px solid ${theme.border}`, background:theme.surfaceAlt, color:theme.text }}>
-        <option value="">Select zone…</option>
-        {zones.map(z=><option key={z.location} value={z.location}>{z.location}</option>)}
-      </select>
-
-      <label style={{ ...panelStyles.label, color:theme.textSub }}>Incident Type</label>
-      <select value={form.type} onChange={e=>setForm(f=>({...f,type:e.target.value}))} style={{ ...panelStyles.select, border:`1px solid ${theme.border}`, background:theme.surfaceAlt, color:theme.text }}>
-        <option value="">Select type…</option>
-        {TYPES.map(t=><option key={t} value={t}>{t}</option>)}
-      </select>
-
-      <label style={{ ...panelStyles.label, color:theme.textSub }}>Severity</label>
-      <div style={{ display:"flex", gap:6, marginBottom:10 }}>
-        {["low","medium","high"].map(s=>(
-          <button key={s} onClick={()=>setForm(f=>({...f,severity:s}))} style={{
-            flex:1, padding:"5px 0", borderRadius:7, fontSize:11, fontWeight:600,
-            cursor:"pointer", textTransform:"capitalize", border:"1px solid",
-            borderColor: form.severity===s?severityColor(s):"#e2e8f0",
-            background:  form.severity===s?severityColor(s)+"18":"#f7fafc",
-            color:       form.severity===s?severityColor(s):"#718096",
-          }}>{s}</button>
-        ))}
-      </div>
-
-      <label style={{ ...panelStyles.label, color:theme.textSub }}>Description (optional)</label>
-      <textarea value={form.description} onChange={e=>setForm(f=>({...f,description:e.target.value}))}
-        placeholder="e.g. Two vehicles collided near signal..." rows={2}
-        style={{ ...panelStyles.select, resize:"none", fontFamily:"inherit", border:`1px solid ${isDark?"#374151":"#e2e8f0"}`, background:isDark?"#0f1117":"#f9fafb", color:isDark?"#f1f5f9":"#1a202c" }}
-      />
-
-      {user ? (
-        <button onClick={handleSubmit} disabled={!form.zone||!form.type} style={{
-          ...panelStyles.btn,
-          background: (!form.zone||!form.type)?"#e2e8f0":"#e53e3e",
-          color:      (!form.zone||!form.type)?"#a0aec0":"#fff",
-          cursor:     (!form.zone||!form.type)?"not-allowed":"pointer",
-        }}>
-          {submitted?"✅ Reported!":"Submit Report"}
-        </button>
-      ) : (
-        <button onClick={() => { onClose(); onLoginRequired && onLoginRequired(); }} style={{
-          ...panelStyles.btn, background:"#4299e1",
-        }}>
-          🔐 Login to Report Incident
-        </button>
-      )}
-
-      {/* Active incidents */}
-      {incidents.length > 0 && (
-        <div style={{ marginTop:16 }}>
-          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:8 }}>
-            <span style={{ fontSize:11, color:isDark?"#6b7280":"#718096", fontWeight:600 }}>ACTIVE ON MAP ({incidents.length})</span>
-            {/* FIXED: Clear All calls onClear with no arguments */}
-            <button
-              onClick={() => onClear()}
-              style={{ fontSize:11, color:"#c53030", background:isDark?"#2d1515":"#fff5f5", border:`1px solid ${isDark?"#7f1d1d":"#fed7d7"}`, borderRadius:6, padding:"2px 10px", cursor:"pointer" }}
-            >
-              Clear All
-            </button>
-          </div>
-          <div style={{ display:"flex", flexDirection:"column", gap:6, maxHeight:200, overflowY:"auto" }}>
-            {incidents.map(inc=>(
-              <div key={inc._id||inc.id} style={{
-                padding:"8px 10px", borderRadius:8, fontSize:11,
-                background:isDark?"#141824":"#f9fafb",
-                border:`1px solid ${isDark?"#2d3748":"#e2e8f0"}`,
-                borderLeft:`3px solid ${severityColor(inc.severity)}`,
-              }}>
-                <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:2 }}>
-                  <span style={{ fontWeight:700, color:isDark?"#f1f5f9":"#1a202c" }}>{inc.type}</span>
-                  {(user && (user.role === "admin" || inc.reportedById === user.id)) && (
-                    <button
-                      onClick={() => onClear(inc._id||inc.id)}
-                      style={{ fontSize:11, color:"#fff", background:"#e53e3e", border:"none", borderRadius:4, padding:"2px 8px", cursor:"pointer", fontWeight:600 }}
-                    >
-                      Remove
-                    </button>
-                  )}
-                </div>
-                <div style={{ color:isDark?"#a0aec0":"#4a5568" }}>
-                    {inc.zone}
-                  </div>
-                <div style={{ color:isDark?"#6b7280":"#9ca3af", fontSize:10, marginTop:2 }}>
-                  {inc.timestamp && !inc.timestamp.toString().includes("T")
-                    ? inc.timestamp
-                    : new Date(inc.createdAt || inc.timestamp).toLocaleString([], {
-                        month:"short", day:"numeric",
-                        hour:"2-digit", minute:"2-digit", hour12:true
-                      })}
-                </div>
-                {inc.description && <div style={{ color:isDark?"#6b7280":"#718096", marginTop:2, fontSize:10, whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis", maxWidth:180 }}>{inc.description}</div>}
-                <div style={{ marginTop:4 }}>
-                  <span style={{
-                    fontSize:9, fontWeight:600, padding:"1px 7px", borderRadius:99, textTransform:"capitalize",
-                    background:severityColor(inc.severity)+"18", color:severityColor(inc.severity),
-                    border:`1px solid ${severityColor(inc.severity)}44`,
-                  }}>{inc.severity}</span>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-    </div>
-  );
-};
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 const MapComponent = ({ layoutTrigger = "", user = null, onLoginRequired = () => {}, onManualRefresh = null, trafficData: externalData = [], isRefreshing = false, isDark = false }) => {
@@ -474,7 +334,6 @@ const MapComponent = ({ layoutTrigger = "", user = null, onLoginRequired = () =>
   const [showHeatmap,  setShowHeatmap]  = useState(false);
   const [showMarkers,  setShowMarkers]  = useState(true);
   const [showRoute,    setShowRoute]    = useState(false);
-  const [showIncident, setShowIncident] = useState(false);
   const [routeData,    setRouteData]    = useState(null);
   const [incidents,    setIncidents]    = useState([]);
   const [generating,   setGenerating]   = useState(false);
@@ -485,7 +344,7 @@ const MapComponent = ({ layoutTrigger = "", user = null, onLoginRequired = () =>
   const predictionsRef = useRef({});
 
   // Combined trigger — fires MapResizer whenever any layout or panel changes
-  const resizerTrigger = `${showRoute}-${showIncident}-${layoutTrigger}`;
+  const resizerTrigger = `${showRoute}-${layoutTrigger}`;
 
   // trafficData comes from externalData prop
   const trafficData = externalData;
@@ -610,16 +469,11 @@ const MapComponent = ({ layoutTrigger = "", user = null, onLoginRequired = () =>
         <div style={{ display:"flex", gap:6, flexWrap:"nowrap" }}>
           <button style={{ ...styles.toggleBtn, border:`1px solid ${theme.border}`, background:theme.surfaceAlt, color:theme.textSub, ...(showMarkers?styles.toggleActiveGreen:{}) }} onClick={()=>setShowMarkers(v=>!v)}>● Markers</button>
           <button style={{ ...styles.toggleBtn, border:`1px solid ${theme.border}`, background:theme.surfaceAlt, color:theme.textSub, ...(showHeatmap?styles.toggleActiveRed:{}) }} onClick={()=>setShowHeatmap(v=>!v)}>🌡 Heat</button>
-          <button onClick={()=>{setShowRoute(v=>!v);setShowIncident(false);}}
+          <button onClick={()=>{setShowRoute(v=>!v);}}
             style={{ ...styles.toggleBtn, border:`1px solid ${theme.border}`, background:theme.surfaceAlt, color:theme.textSub, ...(showRoute?{background:"#ebf4ff",border:"1px solid #4299e1",color:"#2b6cb0"}:{}) }}>
             🗺 Route
           </button>
-          <button
-            onClick={() => { setShowIncident(v=>!v); setShowRoute(false); }}
-            style={{ ...styles.toggleBtn, border:`1px solid ${theme.border}`, background:theme.surfaceAlt, color:theme.textSub, ...(showIncident?{background:"#fff5f5",border:"1px solid #e53e3e",color:"#c53030"}:{}) }}
-          >
-            ⚠️ Incident{incidents.length>0&&<span style={{ background:"#e53e3e",color:"#fff",borderRadius:99,padding:"0 5px",fontSize:10,marginLeft:4 }}>{incidents.length}</span>}
-          </button>
+
 
           {/* Clear Route — only visible when a route is drawn */}
           {routeData && (
@@ -861,11 +715,7 @@ const MapComponent = ({ layoutTrigger = "", user = null, onLoginRequired = () =>
           </div>
         )}
 
-        {showIncident&&(
-          <div style={panelStyles.floating}>
-            <IncidentForm zones={trafficData} incidents={incidents} onAdd={handleAddIncident} onClear={handleClearIncident} onClose={()=>setShowIncident(false)} user={user} onLoginRequired={onLoginRequired}/>
-          </div>
-        )}
+
 
         {/* ── Alert toasts — bottom left ── */}
         <div style={{ position:"absolute", bottom:16, left:16, zIndex:2000, display:"flex", flexDirection:"column", gap:8, maxWidth:300 }}>
