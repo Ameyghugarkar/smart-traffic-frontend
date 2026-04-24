@@ -203,7 +203,7 @@ const HourlyForecastTab = ({ zones }) => {
             Congestion forecast chart — next 24 hours
           </p>
           <ResponsiveContainer width="100%" height={200}>
-            <BarChart data={forecast} margin={{ top: 5, right: 10, left: 0, bottom: 20 }}>
+            <BarChart data={forecast} margin={{ top: 15, right: 10, left: 0, bottom: 20 }}>
               <CartesianGrid strokeDasharray="3 3" stroke={dark?"#2d3748":"#f0f0f0"}/>
               <XAxis
                 dataKey="label"
@@ -318,7 +318,7 @@ const HistoryTab = () => {
           {/* Avg Congestion over time */}
           <p style={{ ...styles.chartTitle, color:dark?"#9ca3af":"#718096" }}>Average congestion over time (%)</p>
           <ResponsiveContainer width="100%" height={200}>
-            <AreaChart data={snapshots} margin={{ top:5, right:10, left:0, bottom:30 }}>
+            <AreaChart data={snapshots} margin={{ top:15, right:10, left:0, bottom:30 }}>
               <defs>
                 <linearGradient id="histGrad" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="5%"  stopColor="#6366f1" stopOpacity={0.35}/>
@@ -340,7 +340,7 @@ const HistoryTab = () => {
           {/* Total Vehicles */}
           <p style={{ ...styles.chartTitle, color:dark?"#9ca3af":"#718096", marginTop:20 }}>Total vehicles across all zones</p>
           <ResponsiveContainer width="100%" height={160}>
-            <LineChart data={snapshots} margin={{ top:5, right:10, left:0, bottom:30 }}>
+            <LineChart data={snapshots} margin={{ top:15, right:10, left:0, bottom:30 }}>
               <CartesianGrid strokeDasharray="3 3" stroke={dark?"#2d3748":"#f0f0f0"}/>
               <XAxis dataKey="time" tick={{ fontSize:9, fill:dark?"#9ca3af":"#718096" }} angle={-30} textAnchor="end" interval={Math.max(0,Math.floor(snapshots.length/8)-1)}/>
               <YAxis tick={{ fontSize:10, fill:dark?"#9ca3af":"#718096" }}/>
@@ -359,7 +359,7 @@ const HistoryTab = () => {
             Heavy vs Clear zones over time
           </p>
           <ResponsiveContainer width="100%" height={120}>
-            <AreaChart data={snapshots} margin={{ top:5, right:10, left:0, bottom:30 }} stackOffset="none">
+            <AreaChart data={snapshots} margin={{ top:15, right:10, left:0, bottom:30 }} stackOffset="none">
               <defs>
                 <linearGradient id="heavyGradTC" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="5%"  stopColor="#e53e3e" stopOpacity={0.7}/>
@@ -783,7 +783,7 @@ const TrafficCharts = ({ trafficData: externalData = [], isRefreshing = false, i
               Live Trend: Average congestion over time (shows up to 120 points)
             </p>
             <ResponsiveContainer width="100%" height={200}>
-              <AreaChart data={historyData} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
+              <AreaChart data={historyData} margin={{ top: 15, right: 20, left: 0, bottom: 0 }}>
                 <defs>
                   <linearGradient id="congGradient" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%"  stopColor="#e53e3e" stopOpacity={0.3}/>
@@ -799,7 +799,7 @@ const TrafficCharts = ({ trafficData: externalData = [], isRefreshing = false, i
             </ResponsiveContainer>
             <p style={{ ...styles.chartTitle, color: dark?"#9ca3af":"#718096", marginTop: 20 }}>Total vehicles across all zones</p>
             <ResponsiveContainer width="100%" height={160}>
-              <LineChart data={historyData} margin={{ top: 5, right: 20, left: 0, bottom: 0 }}>
+              <LineChart data={historyData} margin={{ top: 15, right: 20, left: 0, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke={dark?"#2d3748":"#f0f0f0"}/>
                 <XAxis dataKey="time" tick={{ fontSize: 10, fill: dark?"#9ca3af":"#718096" }}/>
                 <YAxis tick={{ fontSize: 11, fill: dark?"#9ca3af":"#718096" }}/>
