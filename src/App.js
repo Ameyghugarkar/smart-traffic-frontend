@@ -45,7 +45,7 @@ const AppShell = () => {
               onLoginClick={() => setShowAuth(true)}
             />}
           />
-          <Route path="/history"   element={<HistoryPage />} />
+          <Route path="/history"   element={<AdminRoute><HistoryPage /></AdminRoute>} />
           <Route path="/incidents" element={<IncidentsPage onLoginClick={() => setShowAuth(true)} />} />
           <Route path="/admin"     element={<AdminRoute><AdminPage /></AdminRoute>} />
           <Route path="*"          element={<Navigate to="/" replace />} />
