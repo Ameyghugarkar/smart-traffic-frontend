@@ -153,7 +153,24 @@ const HistoryPage = () => {
           </p>
         </div>
 
-        <div style={{ display:"flex", gap:12, alignItems:"center" }}>
+        <div style={{ display:"flex", gap:12, alignItems:"center", flexWrap:"wrap" }}>
+          
+          {/* Download Backup Button */}
+          <button
+            onClick={() => window.open(`${API_TRAFFIC}/backup`, "_blank")}
+            style={{
+              display: "flex", alignItems: "center", gap: 6,
+              padding: "8px 16px", borderRadius: 8, border: "none",
+              background: "#10b981", color: "#fff",
+              fontWeight: 600, fontSize: 13, cursor: "pointer",
+              transition: "all .15s",
+              boxShadow: "0 2px 4px rgba(16,185,129,0.2)"
+            }}
+          >
+            <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+            Export Backup
+          </button>
+
           <div style={{ display:"flex", background:isDark?"#1e2535":"#f7fafc", borderRadius:8, border:`1px solid ${isDark?"#374151":"#e2e8f0"}`, overflow:"hidden" }}>
             {["day", "week", "month", "custom", "summary"].map(m => (
               <button
