@@ -43,9 +43,6 @@ const HistoryPage = () => {
   const [snapshots, setSnapshots] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  // Display state
-  const [displayMode, setDisplayMode] = useState("charts");
-
   // Table state
   const [tableFilter, setTableFilter] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
@@ -93,6 +90,12 @@ const HistoryPage = () => {
       if (!customStart || !customEnd) return;
       start = new Date(customStart).toISOString();
       end   = new Date(customEnd).toISOString();
+    } else if (viewMode === "summary") {
+      // Fetch 30 days of data for the summary table
+      const d = new Date();
+      end = d.toISOString();
+      d.setDate(d.getDate() - 30);
+      start = d.toISOString();
     }
 
     setLoading(true);
@@ -152,7 +155,7 @@ const HistoryPage = () => {
 
         <div style={{ display:"flex", gap:12, alignItems:"center" }}>
           <div style={{ display:"flex", background:isDark?"#1e2535":"#f7fafc", borderRadius:8, border:`1px solid ${isDark?"#374151":"#e2e8f0"}`, overflow:"hidden" }}>
-            {["day", "week", "month", "custom"].map(m => (
+            {["day", "week", "month", "custom", "summary"].map(m => (
               <button
                 key={m}
                 onClick={() => setViewMode(m)}
@@ -189,25 +192,6 @@ const HistoryPage = () => {
               </div>
             )}
           </div>
-
-          <div style={{ display:"flex", background:isDark?"#1e2535":"#f7fafc", borderRadius:8, border:`1px solid ${isDark?"#374151":"#e2e8f0"}`, overflow:"hidden", marginLeft:8 }}>
-            {[
-              { id: "charts", label: "📈 Charts" },
-              { id: "summary", label: "📋 Summary" }
-            ].map(m => (
-              <button
-                key={m.id}
-                onClick={() => setDisplayMode(m.id)}
-                style={{
-                  padding:"8px 16px", fontSize:13, fontWeight:600, cursor:"pointer",
-                  border: "none",
-                  background: displayMode===m.id ? "#8b5cf6" : "transparent",
-                  color: displayMode===m.id ? "#fff" : (isDark?"#9ca3af":"#718096"),
-                  transition:"all .15s",
-                }}
-              >{m.label}</button>
-            ))}
-          </div>
         </div>
       </div>
 
@@ -238,7 +222,7 @@ const HistoryPage = () => {
             ))}
           </div>
 
-          {displayMode === "charts" ? (
+          {viewMode !== "summary" ? (
             <>
               {/* Congestion Area Chart */}
               <div style={card}>
