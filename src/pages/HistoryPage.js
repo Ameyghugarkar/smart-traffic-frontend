@@ -188,27 +188,29 @@ const HistoryPage = () => {
             ))}
           </div>
 
-          <div style={{ background:isDark?"#1e2535":"#fff", borderRadius:8, border:`1px solid ${isDark?"#374151":"#e2e8f0"}`, padding:"6px 12px" }}>
-            {viewMode === "day" && (
-              <input type="date" value={dateVal} onChange={e => setDateVal(e.target.value)} 
-                style={{ background:"transparent", border:"none", color:isDark?"#f1f5f9":"#1a202c", outline:"none", fontFamily:"inherit" }} />
-            )}
-            {viewMode === "week" && (
-              <input type="week" value={weekVal} onChange={e => setWeekVal(e.target.value)}
-                style={{ background:"transparent", border:"none", color:isDark?"#f1f5f9":"#1a202c", outline:"none", fontFamily:"inherit" }} />
-            )}
-            {viewMode === "month" && (
-              <input type="month" value={monthVal} onChange={e => setMonthVal(e.target.value)}
-                style={{ background:"transparent", border:"none", color:isDark?"#f1f5f9":"#1a202c", outline:"none", fontFamily:"inherit" }} />
-            )}
-            {viewMode === "custom" && (
-              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <input type="datetime-local" value={customStart} onChange={e => setCustomStart(e.target.value)} style={{ background:"transparent", border:"none", color:isDark?"#f1f5f9":"#1a202c", outline:"none", fontFamily:"inherit" }} />
-                <span style={{ color:isDark?"#9ca3af":"#718096", fontSize:13 }}>to</span>
-                <input type="datetime-local" value={customEnd} onChange={e => setCustomEnd(e.target.value)} style={{ background:"transparent", border:"none", color:isDark?"#f1f5f9":"#1a202c", outline:"none", fontFamily:"inherit" }} />
-              </div>
-            )}
-          </div>
+          {viewMode !== "summary" && (
+            <div style={{ background:isDark?"#1e2535":"#fff", borderRadius:8, border:`1px solid ${isDark?"#374151":"#e2e8f0"}`, padding:"6px 12px" }}>
+              {viewMode === "day" && (
+                <input type="date" value={dateVal} onChange={e => setDateVal(e.target.value)} 
+                  style={{ background:"transparent", border:"none", color:isDark?"#f1f5f9":"#1a202c", outline:"none", fontFamily:"inherit" }} />
+              )}
+              {viewMode === "week" && (
+                <input type="week" value={weekVal} onChange={e => setWeekVal(e.target.value)}
+                  style={{ background:"transparent", border:"none", color:isDark?"#f1f5f9":"#1a202c", outline:"none", fontFamily:"inherit" }} />
+              )}
+              {viewMode === "month" && (
+                <input type="month" value={monthVal} onChange={e => setMonthVal(e.target.value)}
+                  style={{ background:"transparent", border:"none", color:isDark?"#f1f5f9":"#1a202c", outline:"none", fontFamily:"inherit" }} />
+              )}
+              {viewMode === "custom" && (
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <input type="datetime-local" value={customStart} onChange={e => setCustomStart(e.target.value)} style={{ background:"transparent", border:"none", color:isDark?"#f1f5f9":"#1a202c", outline:"none", fontFamily:"inherit" }} />
+                  <span style={{ color:isDark?"#9ca3af":"#718096", fontSize:13 }}>to</span>
+                  <input type="datetime-local" value={customEnd} onChange={e => setCustomEnd(e.target.value)} style={{ background:"transparent", border:"none", color:isDark?"#f1f5f9":"#1a202c", outline:"none", fontFamily:"inherit" }} />
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
 
