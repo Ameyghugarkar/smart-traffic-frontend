@@ -317,7 +317,7 @@ const HistoryPage = () => {
                       labelFormatter={renderTooltipLabel}
                       formatter={(v, name) => [`${v} zones`, name]}
                     />
-                    <Legend wrapperStyle={{ fontSize:12, paddingTop:12 }}/>
+                    <Legend verticalAlign="top" wrapperStyle={{ fontSize:12, paddingBottom:15 }}/>
                     {/* Clear first (bottom), Heavy on top */}
                     <Area type="monotone" dataKey="clearZones" name="Clear Zones" stackId="zones" stroke="#38a169" fill="url(#clearGrad)" strokeWidth={1.5} />
                     <Area type="monotone" dataKey="heavyZones" name="Heavy Zones" stackId="zones" stroke="#e53e3e" fill="url(#heavyGrad)" strokeWidth={1.5} />
