@@ -157,6 +157,7 @@ const HistoryPage = () => {
           
           {/* Download Backup Button */}
           <button
+            type="button"
             onClick={() => window.open(`${API_TRAFFIC}/backup`, "_blank")}
             style={{
               display: "flex", alignItems: "center", gap: 6,
@@ -175,6 +176,7 @@ const HistoryPage = () => {
             {["day", "week", "month", "custom", "summary"].map(m => (
               <button
                 key={m}
+                type="button"
                 onClick={() => setViewMode(m)}
                 style={{
                   padding:"8px 16px", fontSize:13, fontWeight:600, cursor:"pointer",
@@ -378,6 +380,7 @@ const HistoryPage = () => {
                 </span>
                 <div style={{ display:"flex", gap:8 }}>
                   <button 
+                    type="button"
                     disabled={currentPage === 1} 
                     onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
                     style={{ padding:"6px 12px", borderRadius:6, border:`1px solid ${isDark?"#374151":"#e2e8f0"}`, background:isDark?"#1e2535":"#fff", color:isDark?"#e2e8f0":"#4a5568", cursor:currentPage===1?"not-allowed":"pointer", opacity:currentPage===1?0.5:1 }}
@@ -385,6 +388,7 @@ const HistoryPage = () => {
                     Prev
                   </button>
                   <button 
+                    type="button"
                     disabled={currentPage === totalPages} 
                     onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
                     style={{ padding:"6px 12px", borderRadius:6, border:`1px solid ${isDark?"#374151":"#e2e8f0"}`, background:isDark?"#1e2535":"#fff", color:isDark?"#e2e8f0":"#4a5568", cursor:currentPage===totalPages?"not-allowed":"pointer", opacity:currentPage===totalPages?0.5:1 }}
