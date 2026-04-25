@@ -264,7 +264,10 @@ const HistoryTab = () => {
   const fetchHistory = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await axios.get(`${API_BASE}/history?range=24h`, { timeout: 8000 });
+      const d = new Date();
+      const start = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 0, 0, 0).toISOString();
+      const end   = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 23, 59, 59).toISOString();
+      const res = await axios.get(`${API_BASE}/history?start=${start}&end=${end}`, { timeout: 8000 });
       if (res.data?.snapshots) {
         const data = res.data.snapshots.map(s => ({
           time:       new Date(s.capturedAt).toLocaleString([], { month:"short", day:"numeric", hour:"2-digit", minute:"2-digit", hour12:true }),
@@ -284,7 +287,7 @@ const HistoryTab = () => {
   return (
     <div>
       <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:16 }}>
-        <p style={{ ...styles.chartTitle, margin:0 }}>Historical traffic (Last 24 Hours) — 15-min snapshots stored automatically</p>
+        <p style={{ ...styles.chartTitle, margin:0 }}>Historical traffic (Today) — 15-min snapshots stored automatically</p>
       </div>
 
       {loading ? (
@@ -643,15 +646,17 @@ const TrafficCharts = ({ trafficData: externalData = [], isRefreshing = false, i
     // 2. Append Live Data
     if (isRefreshing || externalData.length === 0) return;
     
-    const now = new Date().toLocaleTimeString([], { hour:"2-digit", minute:"2-digit", second:"2-digit" });
-    setLastUpdated(now);
+    const dataTime = externalData[0]?.timestamp ? new Date(externalData[0].timestamp) : new Date();
+    const formattedTime = dataTime.toLocaleTimeString([], { hour:"2-digit", minute:"2-digit", second:"2-digit" });
+    
+    setLastUpdated(formattedTime);
     
     const avg = Math.round(externalData.reduce((s,z) => s + (z.congestion || 0), 0) / externalData.length * 100);
     const totalVehicles = externalData.reduce((s,z) => s + (z.vehicles || 0), 0);
 
     setHistoryData(prev => {
-      if (prev.length > 0 && prev[prev.length - 1].time === now) return prev;
-      return [...prev, { time: now, avgCong: avg, vehicles: totalVehicles }].slice(-120);
+      if (prev.length > 0 && prev[prev.length - 1].time === formattedTime) return prev;
+      return [...prev, { time: formattedTime, avgCong: avg, vehicles: totalVehicles }].slice(-120);
     });
   }, [externalData, isRefreshing]); // eslint-disable-line
 
@@ -783,7 +788,7 @@ const TrafficCharts = ({ trafficData: externalData = [], isRefreshing = false, i
               Live Trend: Average congestion over time (shows up to 120 points)
             </p>
             <ResponsiveContainer width="100%" height={200}>
-              <AreaChart data={historyData} margin={{ top: 15, right: 20, left: 0, bottom: 0 }}>
+              <AreaChart data={historyData} margin={{ top: 15, right: 20, left: 0, bottom: 30 }}>
                 <defs>
                   <linearGradient id="congGradient" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%"  stopColor="#e53e3e" stopOpacity={0.3}/>
@@ -791,7 +796,7 @@ const TrafficCharts = ({ trafficData: externalData = [], isRefreshing = false, i
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke={dark?"#2d3748":"#f0f0f0"}/>
-                <XAxis dataKey="time" tick={{ fontSize: 10, fill: dark?"#9ca3af":"#718096" }}/>
+                <XAxis dataKey="time" tick={{ fontSize: 10, fill: dark?"#9ca3af":"#718096" }} angle={-30} textAnchor="end" interval={Math.max(0, Math.floor(historyData.length / 8) - 1)}/>
                 <YAxis domain={[0, 100]} tick={{ fontSize: 11, fill: dark?"#9ca3af":"#718096" }} tickFormatter={v => `${v}%`}/>
                 <Tooltip content={<CustomTooltip/>} cursor={{ fill: dark?"rgba(255,255,255,0.05)":"rgba(0,0,0,0.04)" }}/>
                 <Area type="monotone" dataKey="avgCong" name="Avg Congestion" stroke="#e53e3e" strokeWidth={2} fill="url(#congGradient)" dot={{ r: 3, fill: "#e53e3e" }} activeDot={{ r: 5 }}/>
@@ -799,9 +804,9 @@ const TrafficCharts = ({ trafficData: externalData = [], isRefreshing = false, i
             </ResponsiveContainer>
             <p style={{ ...styles.chartTitle, color: dark?"#9ca3af":"#718096", marginTop: 20 }}>Total vehicles across all zones</p>
             <ResponsiveContainer width="100%" height={160}>
-              <LineChart data={historyData} margin={{ top: 15, right: 20, left: 0, bottom: 0 }}>
+              <LineChart data={historyData} margin={{ top: 15, right: 20, left: 0, bottom: 30 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke={dark?"#2d3748":"#f0f0f0"}/>
-                <XAxis dataKey="time" tick={{ fontSize: 10, fill: dark?"#9ca3af":"#718096" }}/>
+                <XAxis dataKey="time" tick={{ fontSize: 10, fill: dark?"#9ca3af":"#718096" }} angle={-30} textAnchor="end" interval={Math.max(0, Math.floor(historyData.length / 8) - 1)}/>
                 <YAxis tick={{ fontSize: 11, fill: dark?"#9ca3af":"#718096" }}/>
                 <Tooltip content={<CustomTooltip/>} cursor={{ fill: dark?"rgba(255,255,255,0.05)":"rgba(0,0,0,0.04)" }}/>
                 <Line type="monotone" dataKey="vehicles" name="Vehicles" stroke="#185FA5" strokeWidth={2} dot={{ r: 3, fill: "#185FA5" }} activeDot={{ r: 5 }}/>
