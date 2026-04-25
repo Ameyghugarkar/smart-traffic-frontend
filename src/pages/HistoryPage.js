@@ -13,10 +13,12 @@ const HistoryPage = () => {
   const { isDark, theme } = useTheme();
   const [viewMode, setViewMode] = useState("day");
   
-  // Format today's date for inputs
+  // Format today's date for inputs (Local Time)
   const today = new Date();
-  const todayStr = today.toISOString().split('T')[0];
-  const thisMonthStr = today.toISOString().slice(0, 7);
+  const offset = today.getTimezoneOffset() * 60000;
+  const localToday = new Date(today.getTime() - offset);
+  const todayStr = localToday.toISOString().split('T')[0];
+  const thisMonthStr = localToday.toISOString().slice(0, 7);
   
   // Quick hack for ISO week
   const getISOWeek = (d) => {
