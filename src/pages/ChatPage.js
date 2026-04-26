@@ -290,10 +290,9 @@ export default function ChatPage() {
             position:"relative", display:"flex", alignItems:"flex-end",
             background: isDark ? "#1a202c" : "#fff",
             border: "1px solid " + (isDark?"#4a5568":"#cbd5e0"),
-            borderRadius:24, padding:"8px 12px 8px 20px",
+            borderRadius:24, padding:"6px 6px 6px 20px",
             boxShadow: isDark ? "0 8px 30px rgba(0,0,0,0.5)" : "0 8px 30px rgba(0,0,0,0.08)",
-            transition:"border-color 0.2s, box-shadow 0.2s",
-            minHeight: 56, boxSizing: "border-box"
+            transition:"border-color 0.2s, box-shadow 0.2s"
           }}
           onFocusCapture={e => e.currentTarget.style.borderColor="#6366f1"}
           onBlurCapture={e => e.currentTarget.style.borderColor=isDark?"#4a5568":"#cbd5e0"}
@@ -308,8 +307,8 @@ export default function ChatPage() {
               style={{
                 flex:1, resize:"none", border:"none", background:"transparent",
                 color:textMain, fontSize:15, outline:"none",
-                fontFamily:"'DM Sans',system-ui,sans-serif", lineHeight:1.5,
-                maxHeight:200, padding:"8px 0", margin:0,
+                fontFamily:"'DM Sans',system-ui,sans-serif", lineHeight:"24px",
+                maxHeight:200, padding:"10px 0", margin:0,
               }}
               onInput={e => {
                 e.target.style.height="auto";
@@ -321,12 +320,12 @@ export default function ChatPage() {
               onClick={() => sendMessage()}
               disabled={!input.trim() || loading}
               style={{
-                width:40, height:40, borderRadius:"50%", border:"none",
+                width:44, height:44, borderRadius:"50%", border:"none",
                 background: input.trim() && !loading ? "linear-gradient(135deg,#6366f1,#8b5cf6)" : (isDark?"#2d3748":"#e2e8f0"),
                 color: input.trim() && !loading ? "#fff" : textMute,
                 fontSize:18, cursor: input.trim() && !loading ? "pointer" : "default",
                 display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0,
-                marginLeft:12, transition:"all 0.2s", marginBottom: 2,
+                marginLeft:12, transition:"all 0.2s",
                 boxShadow: input.trim() && !loading ? "0 4px 12px rgba(99,102,241,0.4)" : "none",
               }}
             >➤</button>
