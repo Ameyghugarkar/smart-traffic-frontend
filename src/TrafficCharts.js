@@ -20,7 +20,6 @@ if (!document.getElementById("spin-anim")) {
 }
 
 const API_BASE         = API_TRAFFIC;
-const REFRESH_INTERVAL = 5000;
 
 const getColor  = (c) => c > 0.65 ? "#e53e3e" : c > 0.35 ? "#ed8936" : "#38a169";
 const getColorP = (p) => p > 65   ? "#e53e3e" : p > 35   ? "#ed8936" : "#38a169"; // pct version

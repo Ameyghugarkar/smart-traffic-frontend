@@ -21,7 +21,6 @@ if (!document.head.querySelector("#alert-anim")) { alertStyle.id="alert-anim"; d
 
 const API_BASE         = API_TRAFFIC;
 const INCIDENT_API     = API_INCIDENTS;
-const REFRESH_INTERVAL = 5000;
 
 const getColor = (c) => c > 0.65 ? "#e53e3e" : c > 0.35 ? "#ed8936" : "#38a169";
 const getLabel = (c) => c > 0.65 ? "Heavy"   : c > 0.35 ? "Moderate" : "Clear";
@@ -330,7 +329,6 @@ const MapComponent = ({ layoutTrigger = "", user = null, onLoginRequired = () =>
   const { theme } = useTheme();
   const { token } = useAuth(); // user comes from props
   const [predictions,  setPredictions]  = useState({});
-  const [lastUpdated,  setLastUpdated]  = useState(null); // kept for display
   const [showHeatmap,  setShowHeatmap]  = useState(false);
   const [showMarkers,  setShowMarkers]  = useState(true);
   const [showRoute,    setShowRoute]    = useState(false);
@@ -397,15 +395,6 @@ const MapComponent = ({ layoutTrigger = "", user = null, onLoginRequired = () =>
     } catch (err) { console.error("[Incidents] fetch failed:", err.message); }
   }, []);
 
-  const handleAddIncident = async (incident) => {
-    try {
-      const res = await axios.post(INCIDENT_API, incident, { timeout: 5000, headers: token ? { Authorization: `Bearer ${token}` } : {} });
-      if (res.data?.success) {
-        setIncidents(prev => [res.data.incident, ...prev]);
-      }
-    } catch (err) { console.error("[Incidents] save failed:", err.message); }
-  };
-
   const handleClearIncident = async (id) => {
     try {
       if (id === undefined) {
@@ -463,7 +452,7 @@ const MapComponent = ({ layoutTrigger = "", user = null, onLoginRequired = () =>
       <div style={{ ...styles.statusBar, background: theme.surface, borderBottom: `1px solid ${theme.border}` }}>
         <div style={{ display:"flex", alignItems:"center", gap:8, flexShrink:0 }}>
           <span style={styles.liveDot}/>
-          <span style={{ ...styles.liveText, color: theme.textSub }}>Live · {trafficData.length} zones · {lastUpdated}</span>
+          <span style={{ ...styles.liveText, color: theme.textSub }}>Live · {trafficData.length} zones</span>
         </div>
 
         <div style={{ display:"flex", gap:6, flexWrap:"nowrap" }}>
