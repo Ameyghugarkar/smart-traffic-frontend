@@ -17,6 +17,7 @@ const Navbar = ({ trafficScore, onLoginClick }) => {
 
   const navItems = [
     { to: "/",          label: "🗺️ Dashboard",  end: true },
+    { to: "/chat",      label: "🤖 Ask AI"               },
     { to: "/incidents", label: "⚠️ Incidents"            },
     ...(user?.role === "admin" ? [
       { to: "/history", label: "📅 History" },

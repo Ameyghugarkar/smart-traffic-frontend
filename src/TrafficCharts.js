@@ -693,24 +693,50 @@ const TrafficCharts = ({ trafficData: externalData = [], isRefreshing = false, i
           <span style={{ ...styles.headerSub, color:theme.textMuted }}>Updated: {lastUpdated} · {trafficData.length} zones</span>
         </div>
         <div style={styles.pills}>
-          <div style={{ ...styles.pill, background:dark?"#141824":"#f7fafc", border:`1px solid ${dark?"#2d3748":"#e2e8f0"}` }}>
-            <span style={{ ...styles.pillLabel, color:dark?"#6b7280":"#a0aec0" }}>Avg Congestion</span>
-            <span style={{ ...styles.pillValue, color:dark?"#f1f5f9":"#1a202c" }}>
-              {trafficData.length ? Math.round(trafficData.reduce((s,z) => s + z.congestion, 0) / trafficData.length) : 0}%
-            </span>
-          </div>
-          <div style={{ ...styles.pill, background:dark?"#141824":"#f7fafc", border:`1px solid ${dark?"#2d3748":"#e2e8f0"}` }}>
-            <span style={{ ...styles.pillLabel, color:dark?"#6b7280":"#a0aec0" }}>Total Vehicles</span>
-            <span style={{ ...styles.pillValue, color:dark?"#f1f5f9":"#1a202c" }}>{trafficData.reduce((s,z) => s + z.vehicles, 0).toLocaleString()}</span>
-          </div>
-          <div style={{ ...styles.pill, background:dark?"#141824":"#f7fafc", border:`1px solid ${dark?"#2d3748":"#e2e8f0"}` }}>
-            <span style={{ ...styles.pillLabel, color:dark?"#6b7280":"#a0aec0" }}>Heavy Zones</span>
-            <span style={{ ...styles.pillValue, color: "#e53e3e" }}>{trafficData.filter(z => z.congestion > 65).length}</span>
-          </div>
-          <div style={{ ...styles.pill, background:dark?"#141824":"#f7fafc", border:`1px solid ${dark?"#2d3748":"#e2e8f0"}` }}>
-            <span style={{ ...styles.pillLabel, color:dark?"#6b7280":"#a0aec0" }}>Clear Zones</span>
-            <span style={{ ...styles.pillValue, color: "#38a169" }}>{trafficData.filter(z => z.congestion <= 35).length}</span>
-          </div>
+          {(() => {
+            if (!trafficData.length) return null;
+            const sorted   = [...trafficData].sort((a,b) => b.congestion - a.congestion);
+            const peak      = sorted[0];
+            const clearest  = sorted[sorted.length - 1];
+            const spread    = peak.congestion - clearest.congestion;
+            const moderate  = trafficData.filter(z => z.congestion > 35 && z.congestion <= 65).length;
+
+            return (
+              <>
+                {/* Peak Zone */}
+                <div style={{ ...styles.pill, background:dark?"#2d0a0a":"#fff5f5", border:`1px solid #e53e3e44` }}>
+                  <span style={{ ...styles.pillLabel, color:"#e53e3e" }}>🔴 Peak Zone</span>
+                  <span style={{ ...styles.pillValue, color:"#e53e3e", fontSize:11 }}>
+                    {peak.name.length > 8 ? peak.name.slice(0,8)+"…" : peak.name}
+                  </span>
+                  <span style={{ fontSize:10, fontWeight:700, color:"#e53e3e" }}>{peak.congestion}%</span>
+                </div>
+
+                {/* Clearest Zone */}
+                <div style={{ ...styles.pill, background:dark?"#052e16":"#f0fdf4", border:`1px solid #38a16944` }}>
+                  <span style={{ ...styles.pillLabel, color:"#38a169" }}>🟢 Clearest</span>
+                  <span style={{ ...styles.pillValue, color:"#38a169", fontSize:11 }}>
+                    {clearest.name.length > 8 ? clearest.name.slice(0,8)+"…" : clearest.name}
+                  </span>
+                  <span style={{ fontSize:10, fontWeight:700, color:"#38a169" }}>{clearest.congestion}%</span>
+                </div>
+
+                {/* Congestion Spread */}
+                <div style={{ ...styles.pill, background:dark?"#141824":"#f7fafc", border:`1px solid ${dark?"#2d3748":"#e2e8f0"}` }}>
+                  <span style={{ ...styles.pillLabel, color:dark?"#6b7280":"#a0aec0" }}>📊 Spread</span>
+                  <span style={{ ...styles.pillValue, color:dark?"#f1f5f9":"#1a202c" }}>{spread}pts</span>
+                  <span style={{ fontSize:9, color:dark?"#6b7280":"#a0aec0" }}>peak − min</span>
+                </div>
+
+                {/* Moderate Zones */}
+                <div style={{ ...styles.pill, background:dark?"#1c1408":"#fffbeb", border:`1px solid #f59e0b44` }}>
+                  <span style={{ ...styles.pillLabel, color:"#f59e0b" }}>🟠 Moderate</span>
+                  <span style={{ ...styles.pillValue, color:"#f59e0b" }}>{moderate}</span>
+                  <span style={{ fontSize:9, color:dark?"#92400e":"#b45309" }}>zones</span>
+                </div>
+              </>
+            );
+          })()}
         </div>
       </div>
 

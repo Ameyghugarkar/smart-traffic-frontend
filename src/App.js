@@ -7,6 +7,7 @@ import DashboardPage  from "./pages/DashboardPage";
 import HistoryPage    from "./pages/HistoryPage";
 import IncidentsPage  from "./pages/IncidentsPage";
 import AdminPage      from "./pages/AdminPage";
+import ChatPage       from "./pages/ChatPage";
 import AuthPage       from "./AuthPage";
 import { useAuth }    from "./AuthContext";
 import { useTheme }   from "./ThemeContext";
@@ -47,6 +48,7 @@ const AppShell = () => {
           />
           <Route path="/history"   element={<AdminRoute><HistoryPage /></AdminRoute>} />
           <Route path="/incidents" element={<IncidentsPage onLoginClick={() => setShowAuth(true)} />} />
+          <Route path="/chat"      element={<ChatPage />} />
           <Route path="/admin"     element={<AdminRoute><AdminPage /></AdminRoute>} />
           <Route path="*"          element={<Navigate to="/" replace />} />
         </Routes>

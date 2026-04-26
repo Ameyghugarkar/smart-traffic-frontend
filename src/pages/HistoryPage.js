@@ -65,9 +65,10 @@ const HistoryPage = () => {
     let start, end;
     if (viewMode === "day") {
       if (!dateVal) return;
-      const d = new Date(dateVal);
-      start = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 0, 0, 0).toISOString();
-      end   = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 23, 59, 59).toISOString();
+      // Split the YYYY-MM-DD string manually to avoid Date() parsing it as UTC midnight
+      const [yr, mo, dy] = dateVal.split("-").map(Number);
+      start = new Date(yr, mo - 1, dy, 0, 0, 0).toISOString();   // local midnight
+      end   = new Date(yr, mo - 1, dy, 23, 59, 59).toISOString(); // local end-of-day
     } else if (viewMode === "month") {
       if (!monthVal) return;
       const [y, m] = monthVal.split('-');
@@ -231,19 +232,82 @@ const HistoryPage = () => {
       ) : (
         <>
           {/* Stats Summary */}
-          <div style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:16, marginBottom:24 }}>
-            {[
-              { label:"Avg Congestion", value:`${Math.round(snapshots.reduce((s,x)=>s+x.congestion,0)/snapshots.length)}%`, color:"#e53e3e" },
-              { label:"Avg Vehicles",   value:Math.round(snapshots.reduce((s,x)=>s+x.vehicles,0)/snapshots.length).toLocaleString(), color:"#0ea5e9" },
-              { label:"Snapshots",      value:snapshots.length, color:"#8b5cf6" },
-              { label:"Peak Congestion",value:`${Math.max(...snapshots.map(s=>s.congestion))}%`, color:"#f59e0b" },
-            ].map(stat => (
-              <div key={stat.label} style={{ ...card, marginBottom:0, textAlign:"center" }}>
-                <div style={{ fontSize:26, fontWeight:800, color:stat.color }}>{stat.value}</div>
-                <div style={{ fontSize:11, color:isDark?"#9ca3af":"#718096", marginTop:4 }}>{stat.label}</div>
+          {(() => {
+            const avgCong  = Math.round(snapshots.reduce((s,x)=>s+x.congestion,0)/snapshots.length);
+            const peakCong = Math.max(...snapshots.map(s=>s.congestion));
+            const delta    = peakCong - avgCong;
+            const avgVeh   = Math.round(snapshots.reduce((s,x)=>s+x.vehicles,0)/snapshots.length);
+
+            return (
+            <div style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:16, marginBottom:24 }}>
+
+              {/* Avg Congestion — with mini dual bar */}
+              <div style={{ ...card, marginBottom:0 }}>
+                <div style={{ fontSize:11, color:isDark?"#9ca3af":"#718096", fontWeight:600, letterSpacing:".04em", textTransform:"uppercase", marginBottom:8 }}>Avg Congestion</div>
+                <div style={{ fontSize:30, fontWeight:800, color:"#e53e3e", lineHeight:1 }}>{avgCong}%</div>
+                {/* Mini dual bar: avg vs peak */}
+                <div style={{ marginTop:12 }}>
+                  <div style={{ display:"flex", alignItems:"center", gap:6, marginBottom:4 }}>
+                    <span style={{ fontSize:9, color:isDark?"#6b7280":"#a0aec0", width:28, textAlign:"right" }}>Avg</span>
+                    <div style={{ flex:1, height:6, background:isDark?"#2d3748":"#f0f0f0", borderRadius:99, overflow:"hidden" }}>
+                      <div style={{ width:`${avgCong}%`, height:"100%", background:"#e53e3e", borderRadius:99 }}/>
+                    </div>
+                    <span style={{ fontSize:9, color:"#e53e3e", width:22 }}>{avgCong}%</span>
+                  </div>
+                  <div style={{ display:"flex", alignItems:"center", gap:6 }}>
+                    <span style={{ fontSize:9, color:isDark?"#6b7280":"#a0aec0", width:28, textAlign:"right" }}>Peak</span>
+                    <div style={{ flex:1, height:6, background:isDark?"#2d3748":"#f0f0f0", borderRadius:99, overflow:"hidden" }}>
+                      <div style={{ width:`${peakCong}%`, height:"100%", background:"#f59e0b", borderRadius:99, opacity:0.8 }}/>
+                    </div>
+                    <span style={{ fontSize:9, color:"#f59e0b", width:22 }}>{peakCong}%</span>
+                  </div>
+                </div>
+                {/* Delta badge */}
+                <div style={{ marginTop:10, display:"inline-flex", alignItems:"center", gap:4, background:"#f59e0b18", border:"1px solid #f59e0b44", borderRadius:99, padding:"3px 10px" }}>
+                  <span style={{ fontSize:10, fontWeight:700, color:"#f59e0b" }}>▲ +{delta}pts</span>
+                  <span style={{ fontSize:10, color:isDark?"#9ca3af":"#718096" }}>peak above avg</span>
+                </div>
               </div>
-            ))}
-          </div>
+
+              {/* Avg Vehicles */}
+              <div style={{ ...card, marginBottom:0, textAlign:"center" }}>
+                <div style={{ fontSize:11, color:isDark?"#9ca3af":"#718096", fontWeight:600, letterSpacing:".04em", textTransform:"uppercase", marginBottom:8 }}>Avg Vehicles</div>
+                <div style={{ fontSize:30, fontWeight:800, color:"#0ea5e9", lineHeight:1 }}>{avgVeh.toLocaleString()}</div>
+                <div style={{ marginTop:10, fontSize:11, color:isDark?"#6b7280":"#a0aec0" }}>per snapshot · {snapshots.length} readings</div>
+              </div>
+
+              {/* Snapshots */}
+              <div style={{ ...card, marginBottom:0, textAlign:"center" }}>
+                <div style={{ fontSize:11, color:isDark?"#9ca3af":"#718096", fontWeight:600, letterSpacing:".04em", textTransform:"uppercase", marginBottom:8 }}>Snapshots</div>
+                <div style={{ fontSize:30, fontWeight:800, color:"#8b5cf6", lineHeight:1 }}>{snapshots.length}</div>
+                <div style={{ marginTop:10, fontSize:11, color:isDark?"#6b7280":"#a0aec0" }}>every 15 min · {Math.round(snapshots.length/4)}h of data</div>
+              </div>
+
+              {/* Peak Congestion */}
+              <div style={{ ...card, marginBottom:0 }}>
+                <div style={{ fontSize:11, color:isDark?"#9ca3af":"#718096", fontWeight:600, letterSpacing:".04em", textTransform:"uppercase", marginBottom:8 }}>Peak Congestion</div>
+                <div style={{ fontSize:30, fontWeight:800, color:"#f59e0b", lineHeight:1 }}>{peakCong}%</div>
+                {/* Visual: how much higher than avg */}
+                <div style={{ marginTop:12 }}>
+                  <div style={{ height:6, background:isDark?"#2d3748":"#f0f0f0", borderRadius:99, overflow:"hidden", position:"relative" }}>
+                    {/* Avg marker */}
+                    <div style={{ position:"absolute", left:`${avgCong}%`, top:0, bottom:0, width:2, background:"#e53e3e", zIndex:2 }}/>
+                    {/* Peak fill */}
+                    <div style={{ width:`${peakCong}%`, height:"100%", background:"linear-gradient(90deg,#e53e3e22,#f59e0b)", borderRadius:99 }}/>
+                  </div>
+                  <div style={{ display:"flex", justifyContent:"space-between", marginTop:4 }}>
+                    <span style={{ fontSize:9, color:"#e53e3e" }}>avg {avgCong}%</span>
+                    <span style={{ fontSize:9, color:"#f59e0b" }}>peak {peakCong}%</span>
+                  </div>
+                </div>
+                <div style={{ marginTop:8, fontSize:11, color:isDark?"#9ca3af":"#718096" }}>
+                  <span style={{ color:"#f59e0b", fontWeight:700 }}>{(peakCong/avgCong).toFixed(1)}×</span> higher than average
+                </div>
+              </div>
+
+            </div>
+            );
+          })()}
 
           {viewMode !== "summary" ? (
             <>

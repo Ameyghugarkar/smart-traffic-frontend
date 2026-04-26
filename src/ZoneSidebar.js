@@ -1,6 +1,6 @@
 // src/ZoneSidebar.js — with Best Time to Travel per zone
 
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useEffect } from "react";
 import axios from "axios";
 import { useTheme } from "./ThemeContext";
 import { API_TRAFFIC } from "./config";
@@ -207,10 +207,27 @@ const StatBadge = ({ label, value, accent, theme }) => (
 // ─── Main Sidebar ─────────────────────────────────────────────────────────────
 export default function ZoneSidebar({ trafficData = [], isRefreshing = false, isDark = false, onZoneSelect }) {
   const { theme } = useTheme();
-  const [selected, setSelected] = useState(null);
-  const [filter,   setFilter]   = useState("all");
-  const [sortBy,   setSortBy]   = useState("congestion");
-  const [search,   setSearch]   = useState("");
+  const [selected,  setSelected]  = useState(null);
+  const [filter,    setFilter]    = useState("all");
+  const [sortBy,    setSortBy]    = useState("congestion");
+  const [search,    setSearch]    = useState("");
+  const [dayAvg,    setDayAvg]    = useState(null); // today's historical average %
+
+  // Fetch today's day-average from history once on mount
+  useEffect(() => {
+    const d = new Date();
+    const start = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 0, 0, 0).toISOString();
+    const end   = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 23, 59, 59).toISOString();
+    axios.get(`${API_BASE}/history?start=${start}&end=${end}`, { timeout: 8000 })
+      .then(res => {
+        const snaps = res.data?.snapshots || [];
+        if (snaps.length > 0) {
+          const avg = Math.round(snaps.reduce((s, x) => s + (x.avgCongestion || 0), 0) / snaps.length * 100);
+          setDayAvg(avg);
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   const zones = trafficData;
 
@@ -267,10 +284,72 @@ export default function ZoneSidebar({ trafficData = [], isRefreshing = false, is
             {isRefreshing ? "⏳ UPDATING" : "● LIVE"}
           </span>
         </div>
-        <div style={{ display:"flex", gap:6, marginBottom:10 }}>
+        <div style={{ display:"flex", gap:6, marginBottom:6 }}>
           <StatBadge label="Avg Congestion" value={`${avgCongestion}%`} accent="#6366f1" theme={theme}/>
           <StatBadge label="Total Vehicles" value={totalVehicles.toLocaleString()} accent="#0ea5e9" theme={theme}/>
         </div>
+
+        {/* ── Day Average Comparison Banner ── */}
+        {dayAvg !== null && (() => {
+          const delta   = avgCongestion - dayAvg;
+          const isAbove = delta > 0;
+          const isBelow = delta < 0;
+          const ratio   = dayAvg > 0 ? (avgCongestion / dayAvg).toFixed(1) : null;
+          const absDelta = Math.abs(delta);
+
+          // colour coding
+          const bannerColor  = isAbove ? "#ef4444" : isBelow ? "#10b981" : "#6366f1";
+          const bannerBg     = isAbove ? (isDark ? "#2d0a0a" : "#fff5f5")
+                                       : isBelow ? (isDark ? "#052e16" : "#f0fdf4")
+                                       : (isDark ? "#1e1b4b" : "#eef2ff");
+          const arrow        = isAbove ? "▲" : isBelow ? "▼" : "→";
+          const label        = isAbove ? "above" : isBelow ? "below" : "equal to";
+          const plain        = isAbove
+            ? (ratio >= 2 ? `${ratio}× higher — traffic unusually heavy` : `Moderately elevated`)
+            : isBelow ? `Lighter than usual today`
+            : `Right on today's average`;
+
+          return (
+            <div style={{
+              marginBottom:10, borderRadius:8, padding:"8px 10px",
+              background: bannerBg,
+              border: `1px solid ${bannerColor}33`,
+              borderLeft: `3px solid ${bannerColor}`,
+            }}>
+              {/* Row 1: main comparison */}
+              <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:5 }}>
+                <span style={{ fontSize:11, fontWeight:700, color: bannerColor }}>
+                  {arrow} {absDelta > 0 ? `+${absDelta}pts` : ""} {label} day avg
+                </span>
+                <span style={{ fontSize:10, color: isDark ? "#6b7280" : "#9ca3af" }}>
+                  day avg: <b style={{ color: isDark?"#d1d5db":"#374151" }}>{dayAvg}%</b>
+                </span>
+              </div>
+
+              {/* Row 2: dual mini bar */}
+              <div style={{ marginBottom:5 }}>
+                <div style={{ display:"flex", alignItems:"center", gap:5, marginBottom:3 }}>
+                  <span style={{ fontSize:9, color: isDark?"#6b7280":"#9ca3af", width:26, textAlign:"right", flexShrink:0 }}>Day</span>
+                  <div style={{ flex:1, height:5, background:isDark?"#374151":"#e5e7eb", borderRadius:99, overflow:"hidden" }}>
+                    <div style={{ width:`${dayAvg}%`, height:"100%", background:"#9ca3af", borderRadius:99 }}/>
+                  </div>
+                  <span style={{ fontSize:9, color:isDark?"#9ca3af":"#6b7280", width:20 }}>{dayAvg}%</span>
+                </div>
+                <div style={{ display:"flex", alignItems:"center", gap:5 }}>
+                  <span style={{ fontSize:9, color: isDark?"#6b7280":"#9ca3af", width:26, textAlign:"right", flexShrink:0 }}>Now</span>
+                  <div style={{ flex:1, height:5, background:isDark?"#374151":"#e5e7eb", borderRadius:99, overflow:"hidden" }}>
+                    <div style={{ width:`${Math.min(avgCongestion,100)}%`, height:"100%", background: bannerColor, borderRadius:99 }}/>
+                  </div>
+                  <span style={{ fontSize:9, color: bannerColor, fontWeight:700, width:20 }}>{avgCongestion}%</span>
+                </div>
+              </div>
+
+              {/* Row 3: plain English */}
+              <div style={{ fontSize:10, color: isDark?"#9ca3af":"#6b7280", fontStyle:"italic" }}>{plain}</div>
+            </div>
+          );
+        })()}
+
         <div style={{ display:"flex", gap:6, marginBottom:10 }}>
           <StatBadge label="Heavy Zones" value={heavyCount} accent="#ef4444" theme={theme}/>
           <StatBadge label="Clear Zones" value={clearCount} accent="#10b981" theme={theme}/>
