@@ -45,6 +45,30 @@ const TypingDots = () => (
   </div>
 );
 
+const formatText = (text) => {
+  if (!text) return null;
+  return text.split('\n').map((line, i) => {
+    const isList = line.trim().startsWith('* ') || line.trim().startsWith('- ');
+    const content = isList ? line.trim().substring(2) : line;
+    
+    // Bold parsing
+    const parts = content.split(/\*\*(.*?)\*\*/g);
+    const formatted = parts.map((part, idx) => 
+      idx % 2 === 1 ? <strong key={idx} style={{ color:"inherit" }}>{part}</strong> : part
+    );
+
+    if (isList) {
+      return (
+        <div key={i} style={{ display:'flex', gap:8, marginTop:4, marginBottom:4 }}>
+          <span style={{ color:'#6366f1', fontWeight:'bold' }}>•</span>
+          <div style={{ flex:1 }}>{formatted}</div>
+        </div>
+      );
+    }
+    return <div key={i} style={{ minHeight: i === 0 ? 0 : 8 }}>{formatted}</div>;
+  });
+};
+
 const MessageBubble = ({ msg, isDark }) => {
   const isUser = msg.role === "user";
   return (
@@ -77,7 +101,7 @@ const MessageBubble = ({ msg, isDark }) => {
         whiteSpace:"pre-wrap",
         wordBreak:"break-word",
       }}>
-        {msg.text}
+        {formatText(msg.text)}
         <div style={{
           fontSize:11, marginTop:8, opacity:0.6, textAlign:"right",
           color: isUser ? "rgba(255,255,255,0.8)" : (isDark?"#9ca3af":"#718096"),
@@ -278,9 +302,10 @@ export default function ChatPage() {
             position:"relative", display:"flex", alignItems:"flex-end",
             background: isDark ? "#1a202c" : "#fff",
             border: "1px solid " + (isDark?"#4a5568":"#cbd5e0"),
-            borderRadius:24, padding:"12px 16px",
+            borderRadius:24, padding:"8px 12px 8px 20px",
             boxShadow: isDark ? "0 8px 30px rgba(0,0,0,0.5)" : "0 8px 30px rgba(0,0,0,0.08)",
-            transition:"border-color 0.2s, box-shadow 0.2s"
+            transition:"border-color 0.2s, box-shadow 0.2s",
+            minHeight: 56, boxSizing: "border-box"
           }}
           onFocusCapture={e => e.currentTarget.style.borderColor="#6366f1"}
           onBlurCapture={e => e.currentTarget.style.borderColor=isDark?"#4a5568":"#cbd5e0"}
@@ -294,9 +319,9 @@ export default function ChatPage() {
               rows={1}
               style={{
                 flex:1, resize:"none", border:"none", background:"transparent",
-                color:textMain, fontSize:16, outline:"none",
+                color:textMain, fontSize:15, outline:"none",
                 fontFamily:"'DM Sans',system-ui,sans-serif", lineHeight:1.5,
-                maxHeight:200, padding:"4px 0",
+                maxHeight:200, padding:"8px 0", margin:0,
               }}
               onInput={e => {
                 e.target.style.height="auto";
@@ -313,7 +338,7 @@ export default function ChatPage() {
                 color: input.trim() && !loading ? "#fff" : textMute,
                 fontSize:18, cursor: input.trim() && !loading ? "pointer" : "default",
                 display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0,
-                marginLeft:12, transition:"all 0.2s",
+                marginLeft:12, transition:"all 0.2s", marginBottom: 2,
                 boxShadow: input.trim() && !loading ? "0 4px 12px rgba(99,102,241,0.4)" : "none",
               }}
             >➤</button>
