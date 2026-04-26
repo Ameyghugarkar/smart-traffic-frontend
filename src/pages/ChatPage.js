@@ -5,6 +5,7 @@ import React, { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import { API_BASE_ROOT } from "../config";
 import { useTheme } from "../ThemeContext";
+import ReactMarkdown from "react-markdown";
 
 const API_CHAT = `${API_BASE_ROOT}/api/chat`;
 
@@ -45,29 +46,6 @@ const TypingDots = () => (
   </div>
 );
 
-const formatText = (text) => {
-  if (!text) return null;
-  return text.split('\n').map((line, i) => {
-    const isList = line.trim().startsWith('* ') || line.trim().startsWith('- ');
-    const content = isList ? line.trim().substring(2) : line;
-    
-    // Bold parsing
-    const parts = content.split(/\*\*(.*?)\*\*/g);
-    const formatted = parts.map((part, idx) => 
-      idx % 2 === 1 ? <strong key={idx} style={{ color:"inherit" }}>{part}</strong> : part
-    );
-
-    if (isList) {
-      return (
-        <div key={i} style={{ display:'flex', gap:8, marginTop:4, marginBottom:4 }}>
-          <span style={{ color:'#6366f1', fontWeight:'bold' }}>•</span>
-          <div style={{ flex:1 }}>{formatted}</div>
-        </div>
-      );
-    }
-    return <div key={i} style={{ minHeight: i === 0 ? 0 : 8 }}>{formatted}</div>;
-  });
-};
 
 const MessageBubble = ({ msg, isDark }) => {
   const isUser = msg.role === "user";
@@ -101,7 +79,17 @@ const MessageBubble = ({ msg, isDark }) => {
         whiteSpace:"pre-wrap",
         wordBreak:"break-word",
       }}>
-        {formatText(msg.text)}
+        <ReactMarkdown
+          components={{
+            p: ({node, ...props}) => <p style={{ margin: "0 0 10px 0", lineHeight: 1.6 }} {...props} />,
+            ul: ({node, ...props}) => <ul style={{ margin: "0 0 12px 0", paddingLeft: 22, display: "flex", flexDirection: "column", gap: 6 }} {...props} />,
+            ol: ({node, ...props}) => <ol style={{ margin: "0 0 12px 0", paddingLeft: 22, display: "flex", flexDirection: "column", gap: 6 }} {...props} />,
+            li: ({node, ...props}) => <li style={{ lineHeight: 1.5, paddingLeft: 4 }} {...props} />,
+            strong: ({node, ...props}) => <strong style={{ fontWeight: 700, color: isUser ? "#fff" : (isDark ? "#f8fafc" : "#111827") }} {...props} />
+          }}
+        >
+          {msg.text}
+        </ReactMarkdown>
         <div style={{
           fontSize:11, marginTop:8, opacity:0.6, textAlign:"right",
           color: isUser ? "rgba(255,255,255,0.8)" : (isDark?"#9ca3af":"#718096"),
