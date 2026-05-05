@@ -602,13 +602,19 @@ const MapComponent = ({ layoutTrigger = "", user = null, onLoginRequired = () =>
                       </>
                     )}
 
-                    {/* Remove button */}
-                    <button
-                      onClick={()=>handleClearIncident(inc._id||inc.id)}
-                      style={{ width:"100%", padding:"5px 0", fontSize:11, fontWeight:600, color:"#fff", background:"#e53e3e", border:"none", borderRadius:6, cursor:"pointer" }}
-                    >
-                      Remove Incident
-                    </button>
+                    {/* Remove button — admin OR incident owner */}
+                    {(user?.role === "admin" || (user && inc.reportedById === user.id)) ? (
+                      <button
+                        onClick={()=>handleClearIncident(inc._id||inc.id)}
+                        style={{ width:"100%", padding:"5px 0", fontSize:11, fontWeight:600, color:"#fff", background:"#e53e3e", border:"none", borderRadius:6, cursor:"pointer" }}
+                      >
+                        Remove Incident
+                      </button>
+                    ) : (
+                      <div style={{ width:"100%", padding:"5px 0", fontSize:11, textAlign:"center", color:isDark?"#4b5563":"#d1d5db", fontStyle:"italic" }}>
+                        {user ? "🔒 Admin only" : "Login to manage"}
+                      </div>
+                    )}
                   </div>
                 </Popup>
               </Marker>

@@ -35,7 +35,12 @@ export default function AdminDashboard({ onClose }) {
     } finally { setLoading(false); }
   }, [token]); // eslint-disable-line
 
-  useEffect(() => { fetchData(); }, [fetchData]);
+  useEffect(() => {
+    fetchData();
+    const poll = setInterval(fetchData, 60 * 1000); // Auto-refresh every 60s
+    return () => clearInterval(poll);
+  }, [fetchData]);
+
 
   const deleteIncident = async (id) => {
     try {

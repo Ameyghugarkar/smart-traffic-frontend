@@ -255,7 +255,7 @@ const HourlyForecastTab = ({ zones }) => {
 };
 
 // ─── History Tab ──────────────────────────────────────────────────────────────
-const HistoryTab = () => {
+const HistoryTab = ({ isActive }) => {
   const { isDark: dark } = useTheme();
   const [snapshots, setSnapshots] = useState([]);
   const [loading,   setLoading]   = useState(true);
@@ -281,12 +281,29 @@ const HistoryTab = () => {
     finally { setLoading(false); }
   }, []);
 
-  useEffect(() => { fetchHistory(); }, [fetchHistory]);
+  // Re-fetch when tab becomes active
+  useEffect(() => {
+    if (isActive) fetchHistory();
+  }, [isActive, fetchHistory]);
+
+  // Auto-refresh every 1 minute while tab is open (catches new 15-min cron snapshots)
+  useEffect(() => {
+    if (!isActive) return;
+    const id = setInterval(fetchHistory, 60 * 1000);
+    return () => clearInterval(id);
+  }, [isActive, fetchHistory]);
 
   return (
     <div>
       <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:16 }}>
         <p style={{ ...styles.chartTitle, margin:0 }}>Historical traffic (Today) — 15-min snapshots stored automatically</p>
+        <button
+          onClick={fetchHistory}
+          disabled={loading}
+          style={{ fontSize:11, padding:"4px 10px", borderRadius:7, border:`1px solid ${dark?"#374151":"#e2e8f0"}`, background:"transparent", color:dark?"#9ca3af":"#718096", cursor:loading?"not-allowed":"pointer", opacity:loading?0.5:1, flexShrink:0 }}
+        >
+          {loading ? "⏳" : "🔄 Refresh"}
+        </button>
       </div>
 
       {loading ? (
@@ -615,49 +632,58 @@ const TrafficCharts = ({ trafficData: externalData = [], isRefreshing = false, i
 
   const loading = externalData.length === 0;
 
-  // Build history from shared data changes
+  // Keep a ref to latest externalData so the interval always reads fresh values
+  const externalDataRef = useRef(externalData);
+  useEffect(() => { externalDataRef.current = externalData; }, [externalData]);
+
+  // Seed from DB — runs once on mount
   const seedFetched = useRef(false);
-
   useEffect(() => {
-    // 1. Initial Seed Fetch (only runs once)
-    if (!seedFetched.current) {
-      seedFetched.current = true;
-      axios.get(`${API_BASE}/history?range=24h`, { timeout: 8000 })
-        .then(res => {
-          if (res.data?.snapshots) {
-            // Take the last 60 snapshots (15 hours of history)
-            const seed = res.data.snapshots.slice(-60).map(s => ({
-              time: new Date(s.capturedAt).toLocaleTimeString([], { hour:"2-digit", minute:"2-digit" }),
-              avgCong: Math.round((s.avgCongestion || 0) * 100),
-              vehicles: s.totalVehicles || 0
-            }));
-            
-            // Merge seed with any live points that might have been collected already
-            setHistoryData(prev => {
-              const livePoints = prev.filter(p => p.time && p.time.includes(":")); // live points have seconds
-              return [...seed, ...livePoints].slice(-120);
-            });
-          }
-        })
-        .catch(() => {});
-    }
+    if (seedFetched.current) return;
+    seedFetched.current = true;
+    axios.get(`${API_BASE}/history?range=24h`, { timeout: 8000 })
+      .then(res => {
+        if (res.data?.snapshots) {
+          const seed = res.data.snapshots.slice(-60).map(s => ({
+            time:     new Date(s.capturedAt).toLocaleTimeString([], { hour:"2-digit", minute:"2-digit" }),
+            avgCong:  Math.round((s.avgCongestion || 0) * 100),
+            vehicles: s.totalVehicles || 0,
+          }));
+          setHistoryData(seed);
+        }
+      })
+      .catch(() => {});
+  }, []);
 
-    // 2. Append Live Data
-    if (isRefreshing || externalData.length === 0) return;
-    
-    const dataTime = externalData[0]?.timestamp ? new Date(externalData[0].timestamp) : new Date();
-    const formattedTime = dataTime.toLocaleTimeString([], { hour:"2-digit", minute:"2-digit", second:"2-digit" });
-    
-    setLastUpdated(formattedTime);
-    
-    const avg = Math.round(externalData.reduce((s,z) => s + (z.congestion || 0), 0) / externalData.length * 100);
-    const totalVehicles = externalData.reduce((s,z) => s + (z.vehicles || 0), 0);
+  // Dedicated interval — appends one point per minute, every 30 seconds
+  useEffect(() => {
+    const tick = () => {
+      const data = externalDataRef.current;
+      if (!data || data.length === 0) return;
 
-    setHistoryData(prev => {
-      if (prev.length > 0 && prev[prev.length - 1].time === formattedTime) return prev;
-      return [...prev, { time: formattedTime, avgCong: avg, vehicles: totalVehicles }].slice(-120);
-    });
-  }, [externalData, isRefreshing]); // eslint-disable-line
+      const now         = new Date();
+      const minuteLabel = now.toLocaleTimeString([], { hour:"2-digit", minute:"2-digit" });
+      const timeStr     = now.toLocaleTimeString([], { hour:"2-digit", minute:"2-digit", second:"2-digit" });
+      const avg         = Math.round(data.reduce((s, z) => s + (z.congestion || 0), 0) / data.length * 100);
+      const totalVeh    = data.reduce((s, z) => s + (z.vehicles || 0), 0);
+
+      setLastUpdated(timeStr);
+      setHistoryData(prev => {
+        if (prev.length > 0 && prev[prev.length - 1].time === minuteLabel) {
+          // Update the current-minute point in place
+          const updated = [...prev];
+          updated[updated.length - 1] = { time: minuteLabel, avgCong: avg, vehicles: totalVeh };
+          return updated;
+        }
+        // New minute — append
+        return [...prev, { time: minuteLabel, avgCong: avg, vehicles: totalVeh }].slice(-120);
+      });
+    };
+
+    tick(); // run immediately on mount
+    const id = setInterval(tick, 30_000);
+    return () => clearInterval(id);
+  }, []); // eslint-disable-line
 
   if (loading) return (
     <div style={styles.loadingBox}><p style={styles.loadingText}>Loading chart data…</p></div>
@@ -759,7 +785,7 @@ const TrafficCharts = ({ trafficData: externalData = [], isRefreshing = false, i
         ))}
       </div>
 
-      <div style={{ ...styles.chartArea, background:theme.bg }}>
+      <div style={{ ...styles.chartArea, background:theme.bg, overflowY:"auto" }}>
 
         {activeTab === "congestion" && (
           <div style={styles.chartWrap}>
@@ -812,7 +838,7 @@ const TrafficCharts = ({ trafficData: externalData = [], isRefreshing = false, i
             <p style={styles.chartTitle}>
               Live Trend: Average congestion over time (shows up to 120 points)
             </p>
-            <ResponsiveContainer width="100%" height={200}>
+            <ResponsiveContainer key={`cong-${historyData.length}`} width="100%" height={200}>
               <AreaChart data={historyData} margin={{ top: 15, right: 20, left: 0, bottom: 30 }}>
                 <defs>
                   <linearGradient id="congGradient" x1="0" y1="0" x2="0" y2="1">
@@ -828,7 +854,7 @@ const TrafficCharts = ({ trafficData: externalData = [], isRefreshing = false, i
               </AreaChart>
             </ResponsiveContainer>
             <p style={{ ...styles.chartTitle, color: dark?"#9ca3af":"#718096", marginTop: 20 }}>Total vehicles across all zones</p>
-            <ResponsiveContainer width="100%" height={160}>
+            <ResponsiveContainer key={`veh-${historyData.length}`} width="100%" height={160}>
               <LineChart data={historyData} margin={{ top: 15, right: 20, left: 0, bottom: 30 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke={dark?"#2d3748":"#f0f0f0"}/>
                 <XAxis dataKey="time" tick={{ fontSize: 10, fill: dark?"#9ca3af":"#718096" }} angle={-30} textAnchor="end" interval={Math.max(0, Math.floor(historyData.length / 8) - 1)}/>
@@ -842,7 +868,7 @@ const TrafficCharts = ({ trafficData: externalData = [], isRefreshing = false, i
 
         {activeTab === "predictions" && <PredictionTab trafficData={trafficData} />}
         {activeTab === "hourly"      && <HourlyForecastTab zones={trafficData} />}
-        {activeTab === "historical"  && <HistoryTab />}
+        {activeTab === "historical"  && <HistoryTab isActive={activeTab === "historical"} />}
 
       </div>
     </div>

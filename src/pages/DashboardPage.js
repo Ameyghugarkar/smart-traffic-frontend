@@ -56,9 +56,10 @@ const DashboardPage = ({ onScoreUpdate, onLoginClick }) => {
   // On mount: read MongoDB immediately, then poll every 15 min (matches cron cadence, zero TomTom cost)
   useEffect(() => {
     fetchTraffic();
-    pollRef.current = setInterval(fetchTraffic, 15 * 60 * 1000);
+    pollRef.current = setInterval(fetchTraffic, 30 * 1000); // Now every 30 seconds
     return () => { if (pollRef.current) clearInterval(pollRef.current); };
-  }, []); // eslint-disable-line
+  }, [fetchTraffic]);
+
 
   return (
     <div style={{ ...S.root, background: theme.bg }}>

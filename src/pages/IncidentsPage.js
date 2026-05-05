@@ -48,7 +48,12 @@ const IncidentsPage = ({ onLoginClick }) => {
       .finally(() => setLoading(false));
   };
 
-  useEffect(() => { fetchIncidents(); }, []);
+  useEffect(() => {
+    fetchIncidents();
+    const poll = setInterval(fetchIncidents, 30 * 1000); // Auto-refresh every 30s
+    return () => clearInterval(poll);
+  }, []);
+
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -199,17 +204,26 @@ const IncidentsPage = ({ onLoginClick }) => {
                     </td>
                     <td style={{ padding:"12px 14px" }}>
                       <div style={{ display:"flex", gap:6 }}>
-                        {user && (
+                        {/* Resolve — admin only */}
+                        {user?.role === "admin" && (
                           <button onClick={()=>handleResolve(inc._id)}
                             style={{ fontSize:11, padding:"4px 10px", borderRadius:6, border:"1px solid #38a16944", background:"transparent", color:"#38a169", cursor:"pointer" }}>
                             ✓ Resolve
                           </button>
                         )}
-                        {user?.role==="admin" && (
+                        {/* Delete — admin OR incident owner */}
+                        {(user?.role === "admin" || (user && inc.reportedById === user.id)) && (
                           <button onClick={()=>handleDelete(inc._id)}
                             style={{ fontSize:11, padding:"4px 10px", borderRadius:6, border:"1px solid #e53e3e44", background:"transparent", color:"#e53e3e", cursor:"pointer" }}>
                             Delete
                           </button>
+                        )}
+                        {/* No actions available */}
+                        {user && user?.role !== "admin" && inc.reportedById !== user.id && (
+                          <span style={{ fontSize:11, color:isDark?"#4b5563":"#d1d5db", fontStyle:"italic" }}>🔒 Admin only</span>
+                        )}
+                        {!user && (
+                          <span style={{ fontSize:11, color:isDark?"#4b5563":"#d1d5db", fontStyle:"italic" }}>Login to manage</span>
                         )}
                       </div>
                     </td>

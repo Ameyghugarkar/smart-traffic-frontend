@@ -1,7 +1,7 @@
 // pages/ChatPage.js
 // Full-page Gemini-powered traffic assistant
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useLayoutEffect, useRef } from "react";
 import axios from "axios";
 import { API_BASE_ROOT } from "../config";
 import { useTheme } from "../ThemeContext";
@@ -134,6 +134,21 @@ export default function ChatPage() {
     inputRef.current?.focus();
   }, []);
 
+  // Sync textarea height with content
+  useLayoutEffect(() => {
+    const el = inputRef.current;
+    if (!el) return;
+
+    el.style.height = "auto";
+    const nextHeight = el.scrollHeight;
+    
+    if (!input) {
+      el.style.height = "24px"; // Exactly one line (line-height)
+    } else {
+      el.style.height = Math.min(nextHeight, 200) + "px";
+    }
+  }, [input]);
+
   const sendMessage = async (text) => {
     const msg = (text || input).trim();
     if (!msg || loading) return;
@@ -259,7 +274,7 @@ export default function ChatPage() {
           
           {/* Suggestions */}
           {showSugg && !loading && (
-            <div style={{ display:"flex", gap:10, flexWrap:"wrap", marginBottom:16, justifyContent:"center" }}>
+            <div style={{ display:"flex", gap:12, flexWrap:"wrap", marginBottom:20, justifyContent:"flex-start" }}>
               {SUGGESTIONS.map((s, i) => (
                 <button
                   key={i} onClick={() => sendMessage(s)}
@@ -290,7 +305,7 @@ export default function ChatPage() {
             position:"relative", display:"flex", alignItems:"center",
             background: isDark ? "#1a202c" : "#fff",
             border: "1px solid " + (isDark?"#4a5568":"#cbd5e0"),
-            borderRadius:24, padding:"8px 8px 8px 20px",
+            borderRadius:28, padding:"12px 12px 12px 22px",
             boxShadow: isDark ? "0 8px 30px rgba(0,0,0,0.5)" : "0 8px 30px rgba(0,0,0,0.08)",
             transition:"border-color 0.2s, box-shadow 0.2s"
           }}
@@ -308,11 +323,10 @@ export default function ChatPage() {
                 flex:1, resize:"none", border:"none", background:"transparent",
                 color:textMain, fontSize:15, outline:"none",
                 fontFamily:"'DM Sans',system-ui,sans-serif", lineHeight:"24px",
-                maxHeight:120, padding:"6px 0", margin:0,
+                maxHeight:200, padding:0, margin:0, overflow:"hidden",
               }}
               onInput={e => {
-                e.target.style.height="auto";
-                e.target.style.height=Math.min(e.target.scrollHeight, 200)+"px";
+                // Handled by useEffect now
               }}
               disabled={loading}
             />
@@ -325,7 +339,7 @@ export default function ChatPage() {
                 color: input.trim() && !loading ? "#fff" : textMute,
                 fontSize:18, cursor: input.trim() && !loading ? "pointer" : "default",
                 display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0,
-                marginLeft:12, transition:"all 0.2s",
+                marginLeft:12, marginBottom:0, transition:"all 0.2s",
                 boxShadow: input.trim() && !loading ? "0 4px 12px rgba(99,102,241,0.4)" : "none",
               }}
             >➤</button>
